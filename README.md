@@ -15,16 +15,13 @@ Add to your CMakeLists.txt:
 include(FetchContent)
 
 set(COMB_VERSION 0.1.0)
-# FetchContent_Declare(
-#     comb
-#     DOWNLOAD_EXTRACT_TIMESTAMP OFF
-#     URL https://github.com/fmtlib/fmt/archive/refs/tags/${FMT_VERSION}.tar.gz)
 FetchContent_Declare(
     comb
-    GIT_REPOSITORY https://github.com/hack3rmann/comb.git
-    GIT_TAG 43d3d8d7c5f39b4a126e2efc554ce272079821ad)
+    DOWNLOAD_EXTRACT_TIMESTAMP OFF
+    URL https://github.com/hack3rmann/comb/archive/refs/tags/${COMB_VERSION}.tar.gz)
 
 FetchContent_MakeAvailable(comb)
+target_link_libraries(${CMAKE_PROJECT_NAME} comb)
 ```
 
 It will fetch `comb` at build time.

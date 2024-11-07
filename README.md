@@ -2,11 +2,11 @@
 
 ## Brief
 
-`comb` is single header file library with implementation of parser combinators.
+`comb` is a single header file library with implementation of parser combinators.
 
 ## Examples
 
-Parse key-value arguments
+Parse key-value arguments.
 
 ```cpp
 #include <cassert>

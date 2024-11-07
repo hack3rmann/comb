@@ -1,6 +1,6 @@
 #pragma once
 
-#include <comb/parse.hpp>
+#include <parse.hpp>
 
 namespace comb_test {
 

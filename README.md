@@ -42,6 +42,8 @@ Parse key-value arguments.
 #include <cassert>
 #include <comb/parse.hpp>
 
+using namespace comb;
+
 auto main() -> int {
     auto constexpr SOURCE = "name = 'George'\n"
                             "name  = 'John'\r\n"
@@ -74,6 +76,8 @@ Parse enumeration values and implement your own parser.
 ```cpp
 #include <cassert>
 #include <comb/parse.hpp>
+
+using namespace comb;
 
 // parses '$(name)' with any given $(name)
 auto single_quoted_name(std::string_view name) {

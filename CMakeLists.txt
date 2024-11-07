@@ -6,6 +6,13 @@ set(CMAKE_CXX_STANDARD 23)
 
 option(COMB_BUILD_TESTS "Build tests for comb" OFF)
 
+add_library(comb INTERFACE)
+
+target_include_directories(comb 
+    INTERFACE 
+        $<BUILD_INTERFACE:${PROJECT_INCLUDE_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+
 if(COMB_BUILD_TESTS)
     include(FetchContent)
     set(FETCHCONTENT_QUIET NO)

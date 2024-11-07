@@ -4,6 +4,36 @@
 
 `comb` is a single header file library with implementation of parser combinators.
 
+## How to install
+
+### With CMake
+
+Add to your CMakeLists.txt:
+
+```cmake
+# Include `FetchContent` if it's not present
+include(FetchContent)
+
+set(COMB_VERSION 0.1.0)
+# FetchContent_Declare(
+#     comb
+#     DOWNLOAD_EXTRACT_TIMESTAMP OFF
+#     URL https://github.com/fmtlib/fmt/archive/refs/tags/${FMT_VERSION}.tar.gz)
+FetchContent_Declare(
+    comb
+    GIT_REPOSITORY https://github.com/hack3rmann/comb.git
+    GIT_TAG 43d3d8d7c5f39b4a126e2efc554ce272079821ad)
+
+FetchContent_MakeAvailable(comb)
+```
+
+It will fetch `comb` at build time.
+
+### Simple copying
+
+Because `comb` is *single header* you can just copy [comb/parse.hpp](/comb/parse.hpp) to your project.
+No dependencies needed.
+
 ## Examples
 
 Parse key-value arguments.

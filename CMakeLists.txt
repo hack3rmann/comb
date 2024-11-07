@@ -6,12 +6,11 @@ set(CMAKE_CXX_STANDARD 23)
 
 option(COMB_BUILD_TESTS "Build tests for comb" OFF)
 
-add_library(comb INTERFACE)
+add_library(comb INTERFACE comb/parse.hpp)
 
 target_include_directories(comb 
     INTERFACE 
-        $<BUILD_INTERFACE:${PROJECT_INCLUDE_DIR}>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 if(COMB_BUILD_TESTS)
     include(FetchContent)

@@ -5,7 +5,6 @@
 namespace comb_test {
 
 using namespace comb;
-using namespace comb::parser;
 
 auto test_parse_parser_sequence() -> void {
     auto parser = sequence("Hello") | sequence("Goodbye");
@@ -42,21 +41,21 @@ auto test_parse_parser_right() -> void {
 }
 
 auto test_parse_quoted_string() -> void {
-    auto const result1 = parse_quoted_string("\"String\"");
+    auto const result1 = quoted_string().parse("\"String\"");
 
     comb_assert(result1.ok());
     comb_assert_eq(result1.get_value(), "String");
     comb_assert_eq(result1.tail, "");
 
-    auto const result2 = parse_quoted_string("\"NotString");
+    auto const result2 = quoted_string().parse("\"NotString");
 
     comb_assert(!result2.ok());
 
-    auto const result3 = parse_quoted_string("AlsoNotAString");
+    auto const result3 = quoted_string().parse("AlsoNotAString");
 
     comb_assert(!result3.ok());
 
-    auto const result4 = parse_quoted_string("\"\"String!");
+    auto const result4 = quoted_string().parse("\"\"String!");
 
     comb_assert(result4.ok());
     comb_assert_eq(result4.get_value(), "");

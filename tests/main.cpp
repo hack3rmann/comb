@@ -4,6 +4,8 @@
 using namespace comb_test;
 
 auto main() -> int {
+    perform_test(test_code_from_example);
+    perform_test(test_second_example);
     perform_test(test_parse_char);
     perform_test(test_parse_sequence);
     perform_test(test_parse_combine);

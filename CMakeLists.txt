@@ -9,10 +9,12 @@ option(COMB_BUILD_TESTS "Build tests for comb" OFF)
 if(COMB_BUILD_TESTS)
     include(FetchContent)
     set(FETCHCONTENT_QUIET NO)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
     add_executable(comb_tests
         tests/main.cpp
         tests/parse/basic.cpp
+        tests/parse/example.cpp
         tests/parse/parser.cpp)
 
     target_include_directories(comb_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

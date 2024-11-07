@@ -1,9 +1,11 @@
 #pragma once
 
-#include <parse.hpp>
+#include <comb/parse.hpp>
 
 namespace comb_test {
 
+auto test_code_from_example() -> void;
+auto test_second_example() -> void;
 auto test_parse_sequence() -> void;
 auto test_parse_char() -> void;
 auto test_parse_combine() -> void;

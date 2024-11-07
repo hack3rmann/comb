@@ -181,26 +181,32 @@ inline auto is_whitespace(char value) -> bool {
     return (9 <= value && value <= 13) || 32 == value;
 }
 
-template <class Char>
-inline auto prefix(std::basic_string_view<Char> match) {
-    auto parse = [match](std::basic_string_view<Char> src
-                 ) -> BasicParseResult<std::basic_string_view<Char>, Char> {
-        if (src.size() < match.size() || !src.starts_with(match)) {
-            return BasicParseResult<std::basic_string_view<Char>, Char>{
-                .value = std::nullopt, .tail = src
-            };
-        } else {
-            auto head = src;
-            head.remove_suffix(src.size() - match.size());
-            src.remove_prefix(match.size());
+namespace basic {
+    template <class Char>
+    inline auto prefix(std::basic_string_view<Char> match) {
+        auto parse = [match](std::basic_string_view<Char> src
+                     ) -> BasicParseResult<std::basic_string_view<Char>, Char> {
+            if (src.size() < match.size() || !src.starts_with(match)) {
+                return BasicParseResult<std::basic_string_view<Char>, Char>{
+                    .value = std::nullopt, .tail = src
+                };
+            } else {
+                auto head = src;
+                head.remove_suffix(src.size() - match.size());
+                src.remove_prefix(match.size());
 
-            return BasicParseResult<std::basic_string_view<Char>, Char>{
-                .value = head, .tail = src
-            };
-        }
-    };
+                return BasicParseResult<std::basic_string_view<Char>, Char>{
+                    .value = head, .tail = src
+                };
+            }
+        };
 
-    return BasicParser<decltype(parse), Char>{std::move(parse)};
+        return BasicParser<decltype(parse), Char>{std::move(parse)};
+    }
+}  // namespace basic
+
+inline auto prefix(std::string_view match) {
+    return basic::prefix<char>(match);
 }
 
 inline auto integer(uint32_t radix = 10) {
@@ -252,43 +258,47 @@ inline auto whitespace(uint32_t min_count = 0) {
 
 // TODO(hack3rmann): move to `charonly` module
 inline auto newline() {
-    return prefix<char>("\r\n") | prefix<char>("\n") | prefix<char>("\r");
+    return prefix("\r\n") | prefix("\n") | prefix("\r");
 }
 
 // TODO(hack3rmann): move to `charonly` module
-inline auto quoted_string() {
-    return Parser{[](std::string_view src) -> ParseResult<std::string_view> {
-        auto const open_quote = character('"').parse(src);
-        auto tail = open_quote.tail;
+inline auto quoted_string(char quote_symbol = '"') {
+    return Parser{
+        [quote_symbol](std::string_view src) -> ParseResult<std::string_view> {
+            auto const open_quote = character(quote_symbol).parse(src);
+            auto tail = open_quote.tail;
 
-        if (!open_quote.ok()) {
-            return ParseResult<std::string_view>{
-                .value = std::nullopt, .tail = src
-            };
-        }
-
-        auto n_string_symbols = size_t{0};
-
-        for (auto symbol : tail) {
-            if ('"' == symbol) {
-                break;
+            if (!open_quote.ok()) {
+                return ParseResult<std::string_view>{
+                    .value = std::nullopt, .tail = src
+                };
             }
 
-            n_string_symbols += 1;
+            auto n_string_symbols = size_t{0};
+
+            for (auto symbol : tail) {
+                if (quote_symbol == symbol) {
+                    break;
+                }
+
+                n_string_symbols += 1;
+            }
+
+            if (n_string_symbols == tail.size() ||
+                quote_symbol != tail[n_string_symbols])
+            {
+                return ParseResult<std::string_view>{
+                    .value = std::nullopt, .tail = src
+                };
+            }
+
+            auto match = tail;
+            match.remove_suffix(src.size() - 1 - n_string_symbols);
+            tail.remove_prefix(n_string_symbols + 1);
+
+            return ParseResult<std::string_view>{.value = match, .tail = tail};
         }
-
-        if (n_string_symbols == tail.size() || '"' != tail[n_string_symbols]) {
-            return ParseResult<std::string_view>{
-                .value = std::nullopt, .tail = src
-            };
-        }
-
-        auto match = tail;
-        match.remove_suffix(src.size() - 1 - n_string_symbols);
-        tail.remove_prefix(n_string_symbols + 1);
-
-        return ParseResult<std::string_view>{.value = match, .tail = tail};
-    }};
+    };
 }
 
 }  // namespace comb

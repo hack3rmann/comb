@@ -6,13 +6,13 @@ namespace comb_test {
 using namespace comb;
 
 auto test_parse_sequence() -> void {
-    auto const result1 = prefix<char>("hello").parse("hello, world!");
+    auto const result1 = prefix("hello").parse("hello, world!");
 
     comb_assert(result1.ok());
     comb_assert_eq(result1.get_value(), "hello");
     comb_assert_eq(result1.tail, ", world!");
 
-    auto const result2 = prefix<char>("Minecraft").parse("Hello, World!");
+    auto const result2 = prefix("Minecraft").parse("Hello, World!");
 
     comb_assert(!result2.ok());
 }
@@ -33,21 +33,21 @@ auto test_parse_combine() -> void {
     auto const src = "Minecraft is a good game";
 
     auto const result1 =
-        (prefix<char>("Terraria") | prefix<char>("Minecraft")).parse(src);
+        (prefix("Terraria") | prefix("Minecraft")).parse(src);
 
     comb_assert(result1.ok());
     comb_assert_eq(result1.get_value(), "Minecraft");
     comb_assert_eq(result1.tail, " is a good game");
 
     auto const result2 =
-        (prefix<char>("Minecraft") | prefix<char>("Terraria")).parse(src);
+        (prefix("Minecraft") | prefix("Terraria")).parse(src);
 
     comb_assert(result2.ok());
     comb_assert_eq(result2.get_value(), "Minecraft");
     comb_assert_eq(result2.tail, " is a good game");
 
     auto const result3 =
-        (prefix<char>("Terraria") | prefix<char>("VintageStory")).parse(src);
+        (prefix("Terraria") | prefix("VintageStory")).parse(src);
 
     comb_assert(!result3.ok());
 }

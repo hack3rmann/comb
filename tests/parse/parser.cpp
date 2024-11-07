@@ -7,7 +7,7 @@ namespace comb_test {
 using namespace comb;
 
 auto test_parse_parser_sequence() -> void {
-    auto parser = prefix("Hello") | prefix("Goodbye");
+    auto parser = prefix<char>("Hello") | prefix<char>("Goodbye");
 
     auto result1 = parser.parse("Hello, World!");
 
@@ -23,7 +23,7 @@ auto test_parse_parser_sequence() -> void {
 }
 
 auto test_parse_parser_right() -> void {
-    auto parser = character('=') >> prefix("value");
+    auto parser = character('=') >> prefix<char>("value");
 
     auto result1 = parser.parse("=value tail");
 
@@ -63,7 +63,7 @@ auto test_parse_quoted_string() -> void {
 }
 
 auto test_parse_parser_left_right() -> void {
-    auto parser = character('<') >> prefix("value") << character('>');
+    auto parser = character('<') >> prefix<char>("value") << character('>');
 
     auto result1 = parser.parse("<value>tail");
 
@@ -87,9 +87,9 @@ auto test_parse_parser_map() -> void {
         Third,
     };
 
-    auto parser = prefix("first").map([](auto) { return State::First; }) |
-                  prefix("second").map([](auto) { return State::Second; }) |
-                  prefix("third").map([](auto) { return State::Third; });
+    auto parser = prefix<char>("first").map([](auto) { return State::First; }) |
+                  prefix<char>("second").map([](auto) { return State::Second; }) |
+                  prefix<char>("third").map([](auto) { return State::Third; });
 
     auto result1 = parser.parse("first_tail");
 

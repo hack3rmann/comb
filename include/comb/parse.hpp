@@ -23,7 +23,8 @@ struct BasicParseResult {
         return std::forward<Self>(self).value.value();
     }
 
-    friend auto operator|(BasicParseResult&& lhs, BasicParseResult&& rhs) -> BasicParseResult {
+    friend auto operator|(BasicParseResult&& lhs, BasicParseResult&& rhs)
+        -> BasicParseResult {
         if (lhs.ok()) {
             return std::move(lhs);
         } else {
@@ -45,7 +46,9 @@ struct BasicParser {
     }
 
     template <class S>
-    friend auto operator|(BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs) {
+    friend auto operator|(
+        BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs
+    ) {
         auto parse = [=](std::string_view src) {
             auto left_result = std::move(lhs.parse)(src);
 
@@ -61,7 +64,9 @@ struct BasicParser {
     }
 
     template <class S>
-    friend auto operator>>(BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs) {
+    friend auto operator>>(
+        BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs
+    ) {
         auto parse = [=](std::string_view src) {
             auto left_result = std::move(lhs.parse)(src);
 
@@ -78,7 +83,9 @@ struct BasicParser {
     }
 
     template <class S>
-    friend auto operator<<(BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs) {
+    friend auto operator<<(
+        BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs
+    ) {
         auto parse = [=](std::string_view src) {
             auto left_result = std::move(lhs.parse)(src);
 
@@ -174,24 +181,26 @@ inline auto is_whitespace(char value) -> bool {
     return (9 <= value && value <= 13) || 32 == value;
 }
 
-inline auto prefix(std::string_view match) {
-    return Parser{
-        [match](std::string_view src) -> ParseResult<std::string_view> {
-            if (src.size() < match.size() || !src.starts_with(match)) {
-                return ParseResult<std::string_view>{
-                    .value = std::nullopt, .tail = src
-                };
-            } else {
-                auto head = src;
-                head.remove_suffix(src.size() - match.size());
-                src.remove_prefix(match.size());
+template <class Char>
+inline auto prefix(std::basic_string_view<Char> match) {
+    auto parse = [match](std::basic_string_view<Char> src
+                 ) -> BasicParseResult<std::basic_string_view<Char>, Char> {
+        if (src.size() < match.size() || !src.starts_with(match)) {
+            return BasicParseResult<std::basic_string_view<Char>, Char>{
+                .value = std::nullopt, .tail = src
+            };
+        } else {
+            auto head = src;
+            head.remove_suffix(src.size() - match.size());
+            src.remove_prefix(match.size());
 
-                return ParseResult<std::string_view>{
-                    .value = head, .tail = src
-                };
-            }
+            return BasicParseResult<std::basic_string_view<Char>, Char>{
+                .value = head, .tail = src
+            };
         }
     };
+
+    return BasicParser<decltype(parse), Char>{std::move(parse)};
 }
 
 inline auto integer(uint32_t radix = 10) {
@@ -210,6 +219,7 @@ inline auto integer(uint32_t radix = 10) {
     }};
 }
 
+// TODO(hack3rmann): move to `charonly` module
 inline auto whitespace(uint32_t min_count = 0) {
     return Parser{
         [min_count](std::string_view src) -> ParseResult<std::string_view> {
@@ -240,10 +250,12 @@ inline auto whitespace(uint32_t min_count = 0) {
     };
 }
 
+// TODO(hack3rmann): move to `charonly` module
 inline auto newline() {
-    return prefix("\r\n") | prefix("\n") | prefix("\r");
+    return prefix<char>("\r\n") | prefix<char>("\n") | prefix<char>("\r");
 }
 
+// TODO(hack3rmann): move to `charonly` module
 inline auto quoted_string() {
     return Parser{[](std::string_view src) -> ParseResult<std::string_view> {
         auto const open_quote = character('"').parse(src);

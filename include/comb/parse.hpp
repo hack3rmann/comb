@@ -9,12 +9,12 @@
 
 namespace comb {
 
-template <class T>
-struct ParseResult {
+template <class T, class Char>
+struct BasicParseResult {
     std::optional<T> value;
-    std::string_view tail;
+    std::basic_string_view<Char> tail;
 
-    auto ok(this ParseResult const& self) -> bool {
+    auto ok(this BasicParseResult const& self) -> bool {
         return self.value.has_value();
     }
 
@@ -23,7 +23,7 @@ struct ParseResult {
         return std::forward<Self>(self).value.value();
     }
 
-    friend auto operator|(ParseResult&& lhs, ParseResult&& rhs) -> ParseResult {
+    friend auto operator|(BasicParseResult&& lhs, BasicParseResult&& rhs) -> BasicParseResult {
         if (lhs.ok()) {
             return std::move(lhs);
         } else {
@@ -33,16 +33,19 @@ struct ParseResult {
 };
 
 template <class T>
-struct Parser {
+using ParseResult = BasicParseResult<T, char>;
+
+template <class T, class Char>
+struct BasicParser {
     T parse;
 
     template <class Self>
-    auto operator()(this Self&& self, std::string_view src) {
+    auto operator()(this Self&& self, std::basic_string_view<Char> src) {
         return std::forward<Self>(self).parse(src);
     }
 
     template <class S>
-    friend auto operator|(Parser<T>&& lhs, Parser<S>&& rhs) {
+    friend auto operator|(BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs) {
         auto parse = [=](std::string_view src) {
             auto left_result = std::move(lhs.parse)(src);
 
@@ -54,11 +57,11 @@ struct Parser {
             }
         };
 
-        return Parser<decltype(parse)>{std::move(parse)};
+        return BasicParser<decltype(parse), Char>{std::move(parse)};
     }
 
     template <class S>
-    friend auto operator>>(Parser<T>&& lhs, Parser<S>&& rhs) {
+    friend auto operator>>(BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs) {
         auto parse = [=](std::string_view src) {
             auto left_result = std::move(lhs.parse)(src);
 
@@ -71,11 +74,11 @@ struct Parser {
             }
         };
 
-        return Parser<decltype(parse)>{std::move(parse)};
+        return BasicParser<decltype(parse), Char>{std::move(parse)};
     }
 
     template <class S>
-    friend auto operator<<(Parser<T>&& lhs, Parser<S>&& rhs) {
+    friend auto operator<<(BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs) {
         auto parse = [=](std::string_view src) {
             auto left_result = std::move(lhs.parse)(src);
 
@@ -95,11 +98,11 @@ struct Parser {
             }
         };
 
-        return Parser<decltype(parse)>{std::move(parse)};
+        return BasicParser<decltype(parse), Char>{std::move(parse)};
     }
 
     template <class F>
-    auto map(this Parser&& self, F transform) {
+    auto map(this BasicParser&& self, F transform) {
         auto parse = [=](std::string_view src) {
             auto result = (self) (src);
 
@@ -117,10 +120,10 @@ struct Parser {
             }
         };
 
-        return Parser<decltype(parse)>{std::move(parse)};
+        return BasicParser<decltype(parse), Char>{std::move(parse)};
     }
 
-    auto sequence(this Parser&& self, size_t min_count = 0) {
+    auto sequence(this BasicParser&& self, size_t min_count = 0) {
         auto parse = [=](std::string_view src) {
             using Value = decltype(self.parse(src).get_value());
             using Sequence = std::vector<Value>;
@@ -148,9 +151,12 @@ struct Parser {
             }
         };
 
-        return Parser<decltype(parse)>(std::move(parse));
+        return BasicParser<decltype(parse), Char>(std::move(parse));
     }
 };
+
+template <class T>
+using Parser = BasicParser<T, char>;
 
 inline auto character(char value) {
     return Parser{[value](std::string_view src) -> ParseResult<char> {
@@ -168,7 +174,7 @@ inline auto is_whitespace(char value) -> bool {
     return (9 <= value && value <= 13) || 32 == value;
 }
 
-inline auto sequence(std::string_view match) {
+inline auto prefix(std::string_view match) {
     return Parser{
         [match](std::string_view src) -> ParseResult<std::string_view> {
             if (src.size() < match.size() || !src.starts_with(match)) {
@@ -235,7 +241,7 @@ inline auto whitespace(uint32_t min_count = 0) {
 }
 
 inline auto newline() {
-    return sequence("\r\n") | sequence("\n") | sequence("\r");
+    return prefix("\r\n") | prefix("\n") | prefix("\r");
 }
 
 inline auto quoted_string() {

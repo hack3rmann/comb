@@ -14,7 +14,7 @@ Add to your CMakeLists.txt:
 # Include `FetchContent` if it's not present
 include(FetchContent)
 
-set(COMB_VERSION 0.1.0)
+set(COMB_VERSION 0.1.1)
 FetchContent_Declare(
     comb
     DOWNLOAD_EXTRACT_TIMESTAMP OFF

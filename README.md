@@ -21,7 +21,7 @@ FetchContent_Declare(
     URL https://github.com/hack3rmann/comb/archive/refs/tags/${COMB_VERSION}.tar.gz)
 
 FetchContent_MakeAvailable(comb)
-target_link_libraries(${CMAKE_PROJECT_NAME} comb)
+target_link_libraries(${TARGET_NAME} comb)
 ```
 
 It will fetch `comb` at build time.

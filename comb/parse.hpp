@@ -146,16 +146,31 @@ struct BasicParser {
             }
 
             if (result_sequence.size() < min_count) {
-                return ParseResult<Sequence>{
+                return BasicParseResult<Sequence, Char>{
                     .value = std::nullopt,
                     .tail = src,
                 };
             } else {
-                return ParseResult<Sequence>{
+                return BasicParseResult<Sequence, Char>{
                     .value = std::move(result_sequence),
                     .tail = tail,
                 };
             }
+        };
+
+        return BasicParser<decltype(parse), Char>(std::move(parse));
+    }
+
+    auto opt(this BasicParser&& self) {
+        auto parse = [=](std::string_view src) {
+            using Value = std::optional<decltype(self.parse(src).get_value())>;
+
+            auto result = self.parse(src);
+
+            return BasicParseResult<Value, Char> {
+                .value = std::make_optional<Value>(std::move(result).value),
+                .tail = result.tail,
+            };
         };
 
         return BasicParser<decltype(parse), Char>(std::move(parse));

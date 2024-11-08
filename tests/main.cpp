@@ -18,4 +18,5 @@ auto main() -> int {
     perform_test(test_parse_parser_left_right);
     perform_test(test_parse_parser_map);
     perform_test(test_parse_parser_vector_sequence);
+    perform_test(test_parse_opt);
 }

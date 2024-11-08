@@ -122,4 +122,20 @@ auto test_parse_parser_vector_sequence() -> void {
     comb_assert_eq(result.tail, "caba");
 }
 
+auto test_parse_opt() -> void {
+    auto parser = prefix("value") >> character('=') >> integer().opt();
+
+    auto result1 = parser.parse("value=42_tail");
+
+    comb_assert(result1.ok());
+    comb_assert(result1.get_value().has_value());
+    comb_assert_eq(result1.get_value().value(), 42);
+    comb_assert_eq(result1.tail, "_tail");
+
+    auto result2 = parser.parse("value=_tail");
+
+    comb_assert(result2.ok());
+    comb_assert(!result2.get_value().has_value());
+}
+
 }  // namespace comb_test

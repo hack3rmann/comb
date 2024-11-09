@@ -79,16 +79,16 @@ struct BasicParser {
     }
 
     template <BasicParseFunction<Char> S>
-    friend auto operator|(
-        BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs
-    ) -> BasicParserLike<Char> auto {
-        auto parse = [=](std::basic_string_view<Char> src) {
-            auto left_result = std::move(lhs.parse)(src);
+    friend auto operator|(BasicParser<T, Char> lhs, BasicParser<S, Char> rhs)
+        -> BasicParserLike<Char> auto {
+        auto parse = [lhs = std::move(lhs),
+                      rhs = std::move(rhs)](std::basic_string_view<Char> src) {
+            auto left_result = lhs.parse(src);
 
             if (left_result.ok()) {
                 return std::move(left_result);
             } else {
-                auto right_result = std::move(rhs.parse)(src);
+                auto right_result = rhs.parse(src);
                 return std::move(right_result);
             }
         };
@@ -97,17 +97,17 @@ struct BasicParser {
     }
 
     template <BasicParseFunction<Char> S>
-    friend auto operator>>(
-        BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs
-    ) -> BasicParserLike<Char> auto {
-        auto parse = [=](std::basic_string_view<Char> src) {
-            auto left_result = std::move(lhs.parse)(src);
+    friend auto operator>>(BasicParser<T, Char> lhs, BasicParser<S, Char> rhs)
+        -> BasicParserLike<Char> auto {
+        auto parse = [lhs = std::move(lhs),
+                      rhs = std::move(rhs)](std::basic_string_view<Char> src) {
+            auto left_result = lhs.parse(src);
 
             if (!left_result.ok()) {
-                return decltype(std::move(rhs.parse)(src)
-                ){.value = ::std::nullopt, .tail = src};
+                return decltype(rhs.parse(src)
+                ){.value = std::nullopt, .tail = src};
             } else {
-                auto right_result = std::move(rhs.parse)(left_result.tail);
+                auto right_result = rhs.parse(left_result.tail);
                 return std::move(right_result);
             }
         };
@@ -116,14 +116,14 @@ struct BasicParser {
     }
 
     template <BasicParseFunction<Char> S>
-    friend auto operator<<(
-        BasicParser<T, Char>&& lhs, BasicParser<S, Char>&& rhs
-    ) -> BasicParserLike<Char> auto {
-        auto parse = [=](std::string_view src) {
-            auto left_result = std::move(lhs.parse)(src);
+    friend auto operator<<(BasicParser<T, Char> lhs, BasicParser<S, Char> rhs)
+        -> BasicParserLike<Char> auto {
+        auto parse = [lhs = std::move(lhs),
+                      rhs = std::move(rhs)](std::string_view src) {
+            auto left_result = lhs.parse(src);
 
             if (left_result.ok()) {
-                auto right_result = std::move(rhs.parse)(left_result.tail);
+                auto right_result = rhs.parse(left_result.tail);
 
                 if (right_result.ok()) {
                     return decltype(left_result
@@ -141,20 +141,22 @@ struct BasicParser {
         return BasicParser<decltype(parse), Char>{std::move(parse)};
     }
 
-    auto map(this BasicParser&& self, auto transform)
+    auto map(this BasicParser self, auto transform)
         -> BasicParserLike<Char> auto
         requires requires {
             transform(self.parse(std::basic_string_view<Char>{}).get_value());
         }
     {
-        auto parse = [=](std::basic_string_view<Char> src) {
-            auto result = (self) (src);
+        auto parse = [self = std::move(self), transform = std::move(transform)](
+                         std::basic_string_view<Char> src
+                     ) {
+            auto result = self.parse(src);
 
             using NewType = decltype(transform(result.get_value()));
 
             if (result.ok()) {
                 return BasicParseResult<NewType, Char>{
-                    .value = transform(std::move(result.get_value())),
+                    .value = transform(std::move(result).get_value()),
                     .tail = result.tail
                 };
             } else {
@@ -167,9 +169,10 @@ struct BasicParser {
         return BasicParser<decltype(parse), Char>{std::move(parse)};
     }
 
-    auto sequence(this BasicParser&& self, size_t min_count = 0)
+    auto sequence(this BasicParser self, size_t min_count = 0)
         -> BasicParserLike<Char> auto {
-        auto parse = [=](std::basic_string_view<Char> src) {
+        auto parse = [self = std::move(self),
+                      min_count](std::basic_string_view<Char> src) {
             using Value = decltype(self.parse(src).get_value());
             using Sequence = std::vector<Value>;
 
@@ -199,8 +202,9 @@ struct BasicParser {
         return BasicParser<decltype(parse), Char>(std::move(parse));
     }
 
-    auto opt(this BasicParser&& self) -> BasicParserLike<Char> auto {
-        auto parse = [=](std::basic_string_view<Char> src) {
+    auto opt(this BasicParser self) -> BasicParserLike<Char> auto {
+        auto parse = [self =
+                          std::move(self)](std::basic_string_view<Char> src) {
             using Value = std::optional<decltype(self.parse(src).get_value())>;
 
             auto result = self.parse(src);
@@ -335,7 +339,7 @@ inline auto newline() -> ParserLike auto {
 inline auto quoted_string(char quote_symbol = '"') -> ParserLike auto {
     return Parser{
         [quote_symbol](std::string_view src) -> ParseResult<std::string_view> {
-            auto const open_quote = character(quote_symbol).parse(src);
+            auto open_quote = character(quote_symbol).parse(src);
             auto tail = open_quote.tail;
 
             if (!open_quote.ok()) {
@@ -380,8 +384,8 @@ enum class TrailingSeparator {
 namespace basic {
     template <class Char>
     auto list(
-        BasicParserLike<Char> auto&& elem_parser,
-        BasicParserLike<Char> auto&& separator_parser,
+        BasicParserLike<Char> auto elem_parser,
+        BasicParserLike<Char> auto separator_parser,
         TrailingSeparator trailing_sep = TrailingSeparator::Allowed,
         size_t min_elem_count = 0
     ) -> BasicParserLike<Char> auto {
@@ -452,7 +456,7 @@ namespace basic {
 }  // namespace basic
 
 auto list(
-    ParserLike auto&& elem_parser, ParserLike auto&& separator_parser,
+    ParserLike auto elem_parser, ParserLike auto separator_parser,
     TrailingSeparator trailing_sep = TrailingSeparator::Allowed,
     size_t min_elem_count = 0
 ) -> ParserLike auto {

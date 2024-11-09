@@ -19,6 +19,7 @@ if(COMB_BUILD_TESTS)
 
     add_executable(comb_tests
         tests/main.cpp
+        tests/json/json.cpp
         tests/parse/basic.cpp
         tests/parse/example.cpp
         tests/parse/parser.cpp)

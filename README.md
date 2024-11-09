@@ -96,7 +96,7 @@ auto main() -> int {
         | single_quoted_name("third").map([](auto parsed) { return Variant::Third; });
 
     // repeat this parser separated by any number of whitespaces
-    auto parser = (std::move(variant_parser) << whitespace()).sequence();
+    auto parser = (variant_parser << whitespace()).sequence();
 
     auto result = parser.parse(SOURCE);
     assert(result.ok());

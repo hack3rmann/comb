@@ -167,7 +167,7 @@ struct BasicParser {
 
             auto result = self.parse(src);
 
-            return BasicParseResult<Value, Char> {
+            return BasicParseResult<Value, Char>{
                 .value = std::make_optional<Value>(std::move(result).value),
                 .tail = result.tail,
             };
@@ -272,9 +272,7 @@ inline auto whitespace(uint32_t min_count = 0) {
 }
 
 // TODO(hack3rmann): move to `charonly` module
-inline auto newline() {
-    return prefix("\r\n") | prefix("\n") | prefix("\r");
-}
+inline auto newline() { return prefix("\r\n") | prefix("\n") | prefix("\r"); }
 
 // TODO(hack3rmann): move to `charonly` module
 inline auto quoted_string(char quote_symbol = '"') {
@@ -314,6 +312,96 @@ inline auto quoted_string(char quote_symbol = '"') {
             return ParseResult<std::string_view>{.value = match, .tail = tail};
         }
     };
+}
+
+enum class TrailingSeparator {
+    Disallowed,
+    Allowed,
+    Required,
+};
+
+namespace basic {
+    template <class Char>
+    auto list(
+        auto&& elem_parser, auto&& separator_parser,
+        TrailingSeparator trailing_sep = TrailingSeparator::Allowed,
+        size_t min_elem_count = 0
+    ) {
+        auto parse = [elem_parser = std::move(elem_parser),
+                      separator_parser = std::move(separator_parser),
+                      trailing_sep,
+                      min_elem_count](std::basic_string_view<Char> src) {
+            using Elem = decltype(elem_parser.parse(src).get_value());
+            using Value = std::vector<Elem>;
+
+            auto values = Value{};
+            auto prev_tail = std::basic_string_view<Char>{};
+            auto tail = src;
+            auto empty_result = BasicParseResult<Value, Char>{
+                .value = std::nullopt,
+                .tail = src,
+            };
+
+            if (auto first_result = elem_parser.parse(src); first_result.ok()) {
+                prev_tail = tail;
+                tail = first_result.tail;
+                values.emplace_back(std::move(first_result).get_value());
+
+                while (true) {
+                    auto sep_result = separator_parser.parse(tail);
+
+                    if (!sep_result.ok()) {
+                        if (TrailingSeparator::Required == trailing_sep) {
+                            values.pop_back();
+                            tail = prev_tail;
+                        }
+
+                        break;
+                    }
+
+                    prev_tail = tail;
+                    tail = sep_result.tail;
+
+                    auto elem_result = elem_parser.parse(tail);
+
+                    if (!elem_result.ok()) {
+                        if (TrailingSeparator::Disallowed == trailing_sep) {
+                            tail = prev_tail;
+                        }
+
+                        break;
+                    }
+
+                    prev_tail = tail;
+                    tail = elem_result.tail;
+
+                    values.emplace_back(std::move(elem_result).get_value());
+                }
+            }
+
+            if (values.size() < min_elem_count) {
+                return empty_result;
+            } else {
+                return BasicParseResult<Value, Char>{
+                    .value = std::move(values),
+                    .tail = tail,
+                };
+            }
+        };
+
+        return BasicParser<decltype(parse), Char>{std::move(parse)};
+    }
+}  // namespace basic
+
+auto list(
+    auto&& elem_parser, auto&& separator_parser,
+    TrailingSeparator trailing_sep = TrailingSeparator::Allowed,
+    size_t min_elem_count = 0
+) {
+    return basic::list<char>(
+        std::move(elem_parser), std::move(separator_parser), trailing_sep,
+        min_elem_count
+    );
 }
 
 }  // namespace comb

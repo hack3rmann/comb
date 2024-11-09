@@ -19,4 +19,8 @@ auto main() -> int {
     perform_test(test_parse_parser_map);
     perform_test(test_parse_parser_vector_sequence);
     perform_test(test_parse_opt);
+    perform_test(test_parse_list);
+    perform_test(test_parse_list_disallowed_trailing_sep);
+    perform_test(test_parse_list_required_trailing_sep);
+    perform_test(test_parse_list_min_n_elems);
 }

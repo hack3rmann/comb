@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <cerrno>
 #include <cstdlib>
+#include <type_traits>
 
 namespace comb {
 
@@ -77,6 +78,16 @@ concept BasicTransformMap = requires(T transform, Input input) {
 
 template <class T, class Input>
 concept TransformMap = BasicTransformMap<T, Input, char>;
+
+template <class T, class Input, class Char>
+concept BasicFilterPredicate = requires(T predicate, Input input) {
+    {
+        predicate(input)
+    } -> std::same_as<bool>;
+};
+
+template <class T, class Input>
+concept FilterPredicate = BasicFilterPredicate<T, Input, char>;
 
 template <class T, class Char>
     requires BasicParseFunction<T, Char>
@@ -158,11 +169,15 @@ struct BasicParser {
     ) -> BasicParserLike<Char> auto {
         auto parse = [lhs = std::move(lhs),
                       rhs = std::move(rhs)](std::basic_string_view<Char> src) {
+            using RightValue = typename decltype(rhs)::ParseValue;
+
             auto left_result = lhs.parse(src);
 
             if (!left_result.ok()) {
-                return decltype(rhs.parse(src)
-                ){.value = std::nullopt, .tail = src};
+                return BasicParseResult<RightValue, Char>{
+                    .value = std::nullopt,
+                    .tail = src,
+                };
             } else {
                 auto right_result = rhs.parse(left_result.tail);
                 return std::move(right_result);
@@ -178,18 +193,23 @@ struct BasicParser {
     ) -> BasicParserLike<Char> auto {
         auto parse = [lhs = std::move(lhs),
                       rhs = std::move(rhs)](std::string_view src) {
+            using LeftValue = typename decltype(lhs)::ParseValue;
+
             auto left_result = lhs.parse(src);
 
             if (left_result.ok()) {
                 auto right_result = rhs.parse(left_result.tail);
 
                 if (right_result.ok()) {
-                    return decltype(left_result
-                    ){.value = std::move(left_result).value,
-                      .tail = right_result.tail};
+                    return BasicParseResult<LeftValue, Char>{
+                        .value = std::move(left_result).value,
+                        .tail = right_result.tail,
+                    };
                 } else {
-                    return decltype(left_result
-                    ){.value = ::std::nullopt, .tail = src};
+                    return BasicParseResult<LeftValue, Char>{
+                        .value = std::nullopt,
+                        .tail = src,
+                    };
                 }
             } else {
                 return left_result;
@@ -229,10 +249,9 @@ struct BasicParser {
         -> BasicParserLike<Char> auto {
         auto parse = [self = std::move(self),
                       min_count](std::basic_string_view<Char> src) {
-            using Value = decltype(self.parse(src).get_value());
-            using Sequence = std::vector<Value>;
+            using Sequence = std::vector<ParseValue>;
 
-            auto result_sequence = std::vector<Value>{};
+            auto result_sequence = Sequence{};
             auto tail = src;
 
             for (auto result = self.parse(tail); result.ok();
@@ -270,6 +289,69 @@ struct BasicParser {
                 .value = std::make_optional<Value>(std::move(result).value),
                 .tail = result.tail,
             };
+        };
+
+        return BasicParser<decltype(parse), Char>(std::move(parse));
+    }
+
+    inline auto constexpr opt_default(this BasicParser self)
+        -> BasicParserLike<Char> auto
+        requires std::is_default_constructible_v<ParseValue>
+    {
+        auto parse = [self =
+                          std::move(self)](std::basic_string_view<Char> src) {
+            auto result = self.parse(src);
+
+            if (result.ok()) {
+                return std::move(result);
+            } else {
+                return BasicParseResult<ParseValue, Char>{
+                    .value = ParseValue{},
+                    .tail = src,
+                };
+            }
+        };
+
+        return BasicParser<decltype(parse), Char>(std::move(parse));
+    }
+
+    inline auto constexpr opt_value(this BasicParser self, ParseValue value)
+        -> BasicParserLike<Char> auto {
+        auto parse = [self = std::move(self),
+                      value =
+                          std::move(value)](std::basic_string_view<Char> src) {
+            auto result = self.parse(src);
+
+            if (result.ok()) {
+                return std::move(result);
+            } else {
+                return BasicParseResult<ParseValue, Char>{
+                    .value = std::move(value),
+                    .tail = src,
+                };
+            }
+        };
+
+        return BasicParser<decltype(parse), Char>(std::move(parse));
+    }
+
+    inline auto constexpr take_if(
+        this BasicParser self,
+        BasicFilterPredicate<ParseValue const&, Char> auto predicate
+    ) -> BasicParserLike<Char> auto {
+        auto parse = [self = std::move(self), predicate = std::move(predicate)](
+                         std::basic_string_view<Char> src
+                     ) {
+            auto result = self.parse(src);
+
+            if (result.ok() && predicate(result.get_value())) {
+                return std::move(result);
+            } else {
+                return BasicParseResult<ParseValue, Char>{
+                    .value = std::nullopt,
+                    .tail = src,
+                };
+            }
         };
 
         return BasicParser<decltype(parse), Char>(std::move(parse));

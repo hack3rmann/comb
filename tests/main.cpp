@@ -26,4 +26,5 @@ auto main() -> int {
     perform_test(test_parse_pair);
     perform_test(test_parse_json);
     perform_test(test_parse_json_object);
+    perform_test(test_parse_float);
 }

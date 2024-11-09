@@ -198,6 +198,12 @@ auto test_parse_list_disallowed_trailing_sep() -> void {
     comb_assert(result4.ok());
     comb_assert_eq(result4.get_value(), std::vector<int64_t>{});
     comb_assert_eq(result4.tail, ",  12, 1");
+
+    auto result5 = parser.parse("1, 2   ");
+
+    comb_assert(result5.ok());
+    comb_assert_eq(result5.get_value(), (std::vector<int64_t>{1, 2}));
+    comb_assert_eq(result5.tail, "   ");
 }
 
 auto test_parse_list_required_trailing_sep() -> void {
@@ -283,6 +289,16 @@ auto test_parse_pair() -> void {
     comb_assert_eq(key, "value");
     comb_assert_eq(value, 42);
     comb_assert_eq(tail, "tail");
+}
+
+auto test_parse_float() -> void {
+    auto parse = list(floating(), whitespace());
+
+    auto result1 = parse("1.2 3.1415 2.718281828");
+
+    comb_assert(result1.ok());
+    comb_assert_eq(result1.get_value(), (std::vector<double>{1.2, 3.1415, 2.718281828}));
+    comb_assert_eq(result1.tail, "");
 }
 
 }  // namespace comb_test

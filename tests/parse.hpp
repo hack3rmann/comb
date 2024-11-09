@@ -26,5 +26,6 @@ auto test_parse_list_min_n_elems() -> void;
 auto test_parse_pair() -> void;
 auto test_parse_json() -> void;
 auto test_parse_json_object() -> void;
+auto test_parse_float() -> void;
 
 }  // namespace tmine_test

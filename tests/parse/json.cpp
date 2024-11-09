@@ -24,7 +24,7 @@ auto test_parse_json() -> void {
 auto test_parse_json_object() -> void {
     auto parse = json::json();
 
-    auto result = parse("{ \"name\": \"Bob\", \"Money\": 666.42 }");
+    auto result = parse("{ \"name\": \"Bob\", \"Money\": 42 }");
 
     comb_assert(result.ok());
 
@@ -36,10 +36,10 @@ auto test_parse_json_object() -> void {
     comb_assert_eq(json_object.size(), 2);
     
     auto name = std::get<json::JsonString>(json_object.at("name").value);
-    auto money = std::get<json::JsonFloat>(json_object.at("Money").value);
+    auto money = std::get<json::JsonInteger>(json_object.at("Money").value);
 
     comb_assert_eq(name, "Bob");
-    comb_assert_eq(money, 666.42);
+    comb_assert_eq(money, 42);
 }
 
 }

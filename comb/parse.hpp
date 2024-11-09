@@ -14,17 +14,18 @@ struct BasicParseResult {
     std::optional<T> value;
     std::basic_string_view<Char> tail;
 
-    auto ok(this BasicParseResult const& self) -> bool {
+    auto constexpr ok(this BasicParseResult const& self) -> bool {
         return self.value.has_value();
     }
 
     template <class Self>
-    auto get_value(this Self&& self) {
+    auto constexpr get_value(this Self&& self) {
         return std::forward<Self>(self).value.value();
     }
 
-    friend auto operator|(BasicParseResult&& lhs, BasicParseResult&& rhs)
-        -> BasicParseResult {
+    friend auto constexpr operator|(
+        BasicParseResult&& lhs, BasicParseResult&& rhs
+    ) -> BasicParseResult {
         if (lhs.ok()) {
             return std::move(lhs);
         } else {
@@ -64,6 +65,19 @@ concept BasicParserLike = requires(T parser, std::basic_string_view<Char> src) {
 template <class T>
 concept ParserLike = BasicParserLike<T, char>;
 
+template <class T>
+concept NotVoid = !std::same_as<T, void>;
+
+template <class T, class Input, class Char>
+concept BasicTransformMap = requires(T transform, Input input) {
+    {
+        transform(input)
+    } -> NotVoid;
+};
+
+template <class T, class Input>
+concept TransformMap = BasicTransformMap<T, Input, char>;
+
 template <class T, class Char>
     requires BasicParseFunction<T, Char>
 struct BasicParser {
@@ -73,14 +87,16 @@ struct BasicParser {
         decltype(parse(std::basic_string_view<Char>{}).get_value());
 
     template <class Self>
-    auto operator()(this Self&& self, std::basic_string_view<Char> src)
-        -> BasicParseResult<ParseValue, Char> {
+    auto constexpr operator()(
+        this Self&& self, std::basic_string_view<Char> src
+    ) -> BasicParseResult<ParseValue, Char> {
         return std::forward<Self>(self).parse(src);
     }
 
     template <BasicParseFunction<Char> S>
-    friend auto operator|(BasicParser<T, Char> lhs, BasicParser<S, Char> rhs)
-        -> BasicParserLike<Char> auto {
+    friend auto constexpr operator|(
+        BasicParser<T, Char> lhs, BasicParser<S, Char> rhs
+    ) -> BasicParserLike<Char> auto {
         auto parse = [lhs = std::move(lhs),
                       rhs = std::move(rhs)](std::basic_string_view<Char> src) {
             auto left_result = lhs.parse(src);
@@ -97,8 +113,9 @@ struct BasicParser {
     }
 
     template <BasicParseFunction<Char> S>
-    friend auto operator&(BasicParser<T, Char> lhs, BasicParser<S, Char> rhs)
-        -> BasicParserLike<Char> auto {
+    friend auto constexpr operator&(
+        BasicParser<T, Char> lhs, BasicParser<S, Char> rhs
+    ) -> BasicParserLike<Char> auto {
         auto parse = [lhs = std::move(lhs),
                       rhs = std::move(rhs)](std::basic_string_view<Char> src) {
             using PairValue = std::pair<
@@ -136,8 +153,9 @@ struct BasicParser {
     }
 
     template <BasicParseFunction<Char> S>
-    friend auto operator>>(BasicParser<T, Char> lhs, BasicParser<S, Char> rhs)
-        -> BasicParserLike<Char> auto {
+    friend auto constexpr operator>>(
+        BasicParser<T, Char> lhs, BasicParser<S, Char> rhs
+    ) -> BasicParserLike<Char> auto {
         auto parse = [lhs = std::move(lhs),
                       rhs = std::move(rhs)](std::basic_string_view<Char> src) {
             auto left_result = lhs.parse(src);
@@ -155,8 +173,9 @@ struct BasicParser {
     }
 
     template <BasicParseFunction<Char> S>
-    friend auto operator<<(BasicParser<T, Char> lhs, BasicParser<S, Char> rhs)
-        -> BasicParserLike<Char> auto {
+    friend auto constexpr operator<<(
+        BasicParser<T, Char> lhs, BasicParser<S, Char> rhs
+    ) -> BasicParserLike<Char> auto {
         auto parse = [lhs = std::move(lhs),
                       rhs = std::move(rhs)](std::string_view src) {
             auto left_result = lhs.parse(src);
@@ -180,12 +199,10 @@ struct BasicParser {
         return BasicParser<decltype(parse), Char>{std::move(parse)};
     }
 
-    auto map(this BasicParser self, auto transform)
-        -> BasicParserLike<Char> auto
-        requires requires {
-            transform(self.parse(std::basic_string_view<Char>{}).get_value());
-        }
-    {
+    auto constexpr map(
+        this BasicParser self,
+        BasicTransformMap<ParseValue, Char> auto transform
+    ) -> BasicParserLike<Char> auto {
         auto parse = [self = std::move(self), transform = std::move(transform)](
                          std::basic_string_view<Char> src
                      ) {
@@ -208,7 +225,7 @@ struct BasicParser {
         return BasicParser<decltype(parse), Char>{std::move(parse)};
     }
 
-    auto sequence(this BasicParser self, size_t min_count = 0)
+    auto constexpr sequence(this BasicParser self, size_t min_count = 0)
         -> BasicParserLike<Char> auto {
         auto parse = [self = std::move(self),
                       min_count](std::basic_string_view<Char> src) {
@@ -241,7 +258,7 @@ struct BasicParser {
         return BasicParser<decltype(parse), Char>(std::move(parse));
     }
 
-    auto opt(this BasicParser self) -> BasicParserLike<Char> auto {
+    auto constexpr opt(this BasicParser self) -> BasicParserLike<Char> auto {
         auto parse = [self =
                           std::move(self)](std::basic_string_view<Char> src) {
             using Value = std::optional<decltype(self.parse(src).get_value())>;
@@ -261,7 +278,7 @@ struct BasicParser {
 template <class T>
 using Parser = BasicParser<T, char>;
 
-inline auto character(char value) -> ParserLike auto {
+inline auto constexpr character(char value) -> ParserLike auto {
     return Parser{[value](std::string_view src) -> ParseResult<char> {
         if (src.empty() || src[0] != value) {
             return ParseResult<char>{.value = std::nullopt, .tail = src};
@@ -273,13 +290,13 @@ inline auto character(char value) -> ParserLike auto {
 }
 
 // FIXME(hack3rmann): remove this definition
-inline auto is_whitespace(char value) -> bool {
+inline auto constexpr is_whitespace(char value) -> bool {
     return (9 <= value && value <= 13) || 32 == value;
 }
 
 namespace basic {
     template <class Char>
-    inline auto prefix(std::basic_string_view<Char> match)
+    inline auto constexpr prefix(std::basic_string_view<Char> match)
         -> BasicParserLike<Char> auto {
         auto parse = [match](std::basic_string_view<Char> src
                      ) -> BasicParseResult<std::basic_string_view<Char>, Char> {
@@ -302,11 +319,11 @@ namespace basic {
     }
 }  // namespace basic
 
-inline auto prefix(std::string_view match) -> ParserLike auto {
+inline auto constexpr prefix(std::string_view match) -> ParserLike auto {
     return basic::prefix<char>(match);
 }
 
-inline auto integer(uint32_t radix = 10) -> ParserLike auto {
+inline auto constexpr integer(uint32_t radix = 10) -> ParserLike auto {
     return Parser{[radix](std::string_view src) -> ParseResult<int64_t> {
         errno = 0;
         char* parse_end = nullptr;
@@ -322,7 +339,7 @@ inline auto integer(uint32_t radix = 10) -> ParserLike auto {
     }};
 }
 
-inline auto floating() -> ParserLike auto {
+inline auto constexpr floating() -> ParserLike auto {
     return Parser{[](std::string_view src) -> ParseResult<double> {
         errno = 0;
         char* parse_end = nullptr;
@@ -338,8 +355,7 @@ inline auto floating() -> ParserLike auto {
     }};
 }
 
-// TODO(hack3rmann): move to `charonly` module
-inline auto whitespace(uint32_t min_count = 0) -> ParserLike auto {
+inline auto constexpr whitespace(uint32_t min_count = 0) -> ParserLike auto {
     return Parser{
         [min_count](std::string_view src) -> ParseResult<std::string_view> {
             auto n_spaces = size_t{0};
@@ -369,13 +385,12 @@ inline auto whitespace(uint32_t min_count = 0) -> ParserLike auto {
     };
 }
 
-// TODO(hack3rmann): move to `charonly` module
-inline auto newline() -> ParserLike auto {
+inline auto constexpr newline() -> ParserLike auto {
     return prefix("\r\n") | prefix("\n") | prefix("\r");
 }
 
-// TODO(hack3rmann): move to `charonly` module
-inline auto quoted_string(char quote_symbol = '"') -> ParserLike auto {
+inline auto constexpr quoted_string(char quote_symbol = '"') -> ParserLike
+    auto {
     return Parser{
         [quote_symbol](std::string_view src) -> ParseResult<std::string_view> {
             auto open_quote = character(quote_symbol).parse(src);
@@ -422,7 +437,7 @@ enum class TrailingSeparator {
 
 namespace basic {
     template <class Char>
-    auto list(
+    auto constexpr list(
         BasicParserLike<Char> auto elem_parser,
         BasicParserLike<Char> auto separator_parser,
         TrailingSeparator trailing_sep = TrailingSeparator::Allowed,
@@ -494,7 +509,7 @@ namespace basic {
     }
 }  // namespace basic
 
-auto list(
+auto constexpr list(
     ParserLike auto elem_parser, ParserLike auto separator_parser,
     TrailingSeparator trailing_sep = TrailingSeparator::Allowed,
     size_t min_elem_count = 0

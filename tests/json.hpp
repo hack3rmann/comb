@@ -22,11 +22,10 @@ using JsonBool = bool;
 using JsonInteger = int64_t;
 using JsonFloat = double;
 using JsonString = std::string_view;
-using JsonList = std::vector<class JsonValue>;
-using JsonObject = std::unordered_map<std::string_view, class JsonValue>;
+using JsonList = std::vector<struct JsonValue>;
+using JsonObject = std::unordered_map<std::string_view, struct JsonValue>;
 
-class JsonValue {
-public:
+struct JsonValue {
     inline explicit JsonValue(JsonBool value)
     : value{value} {}
 
@@ -45,7 +44,6 @@ public:
     inline explicit JsonValue(JsonObject value)
     : value{std::move(value)} {}
 
-private:
     std::variant<
         JsonBool, JsonInteger, JsonFloat, JsonString, JsonList, JsonObject>
         value;
@@ -53,8 +51,12 @@ private:
 
 auto parse(std::string_view src) -> comb::ParseResult<JsonValue>;
 
-inline auto json() {
-    return comb::Parser{[](std::string_view src) { return parse(src); }};
+inline auto json() -> comb::ParserLike auto {
+    auto parse = [](std::string_view src) -> comb::ParseResult<JsonValue> {
+        return ::json::parse(src);
+    };
+
+    return comb::Parser<decltype(parse)>{std::move(parse)};
 }
 
 }  // namespace json

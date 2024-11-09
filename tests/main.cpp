@@ -24,4 +24,6 @@ auto main() -> int {
     perform_test(test_parse_list_required_trailing_sep);
     perform_test(test_parse_list_min_n_elems);
     perform_test(test_parse_pair);
+    perform_test(test_parse_json);
+    perform_test(test_parse_json_object);
 }

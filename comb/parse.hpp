@@ -245,7 +245,7 @@ struct BasicParser {
         return BasicParser<decltype(parse), Char>{std::move(parse)};
     }
 
-    inline auto constexpr sequence(this BasicParser self, size_t min_count = 0)
+    inline auto constexpr repeat(this BasicParser self, size_t min_count = 0)
         -> BasicParserLike<Char> auto {
         auto parse = [self = std::move(self),
                       min_count](std::basic_string_view<Char> src) {

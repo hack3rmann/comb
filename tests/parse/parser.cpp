@@ -111,7 +111,7 @@ auto test_parse_parser_map() -> void {
 }
 
 auto test_parse_parser_vector_sequence() -> void {
-    auto parser = (character('a') | character('b')).sequence();
+    auto parser = (character('a') | character('b')).repeat();
 
     auto result = parser.parse("ababbcaba");
 

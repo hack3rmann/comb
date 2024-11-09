@@ -23,7 +23,7 @@ auto test_code_from_example() -> void {
                 >> character('=')
                 >> whitespace()
                 >> quoted_string('\'')
-                << newline()).sequence(1);
+                << newline()).repeat(1);
 
     auto result = parser.parse(SOURCE);
     assert(result.ok());
@@ -52,7 +52,7 @@ auto test_second_example() -> void {
         | single_quoted_name("third").map([](auto) { return Variant::Third; });
 
     // repeat this parser separated by any number of whitespaces
-    auto parser = (variant_parser << whitespace()).sequence();
+    auto parser = (variant_parser << whitespace()).repeat();
 
     auto result = parser.parse(SOURCE);
     assert(result.ok());

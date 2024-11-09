@@ -245,6 +245,18 @@ struct BasicParser {
         return BasicParser<decltype(parse), Char>{std::move(parse)};
     }
 
+    inline auto constexpr map_result(
+        this BasicParser self,
+        BasicTransformMap<BasicParseResult<ParseValue, Char>, Char> auto
+            transform
+    ) -> BasicParserLike<Char> auto {
+        auto parse = [self = std::move(self), transform = std::move(transform)](
+                         std::basic_string_view<Char> src
+                     ) { return transform(self.parse(src)); };
+
+        return BasicParser<decltype(parse), Char>{std::move(parse)};
+    }
+
     inline auto constexpr repeat(this BasicParser self, size_t min_count = 0)
         -> BasicParserLike<Char> auto {
         auto parse = [self = std::move(self),

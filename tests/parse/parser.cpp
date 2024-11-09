@@ -243,7 +243,9 @@ auto test_parse_list_min_n_elems() -> void {
     auto result1 = parse("true   true  false true  tr");
 
     comb_assert(result1.ok());
-    comb_assert_eq(result1.get_value(), (std::vector<bool>{true, true, false, true}));
+    comb_assert_eq(
+        result1.get_value(), (std::vector<bool>{true, true, false, true})
+    );
     comb_assert_eq(result1.tail, "  tr");
 
     auto result2 = parse("true ");
@@ -253,7 +255,7 @@ auto test_parse_list_min_n_elems() -> void {
     comb_assert_eq(result2.tail, " ");
 
     auto result3 = parse("something else");
-    
+
     comb_assert(!result3.ok());
 
     auto result4 = parse("    trailing separators");
@@ -265,6 +267,22 @@ auto test_parse_list_min_n_elems() -> void {
     comb_assert(result5.ok());
     comb_assert_eq(result5.get_value(), std::vector<bool>{false});
     comb_assert_eq(result5.tail, "");
+}
+
+auto test_parse_pair() -> void {
+    auto parse = (quoted_string('\'') << whitespace() << character(':')) &
+                 (whitespace() >> integer());
+
+    auto result = parse("'value' :  42tail");
+
+    comb_assert(result.ok());
+
+    auto tail = result.tail;
+    auto [key, value] = std::move(result).get_value();
+
+    comb_assert_eq(key, "value");
+    comb_assert_eq(value, 42);
+    comb_assert_eq(tail, "tail");
 }
 
 }  // namespace comb_test

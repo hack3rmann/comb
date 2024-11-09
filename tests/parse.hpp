@@ -23,5 +23,6 @@ auto test_parse_list() -> void;
 auto test_parse_list_disallowed_trailing_sep() -> void;
 auto test_parse_list_required_trailing_sep() -> void;
 auto test_parse_list_min_n_elems() -> void;
+auto test_parse_pair() -> void;
 
 }  // namespace tmine_test

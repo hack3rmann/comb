@@ -97,6 +97,45 @@ struct BasicParser {
     }
 
     template <BasicParseFunction<Char> S>
+    friend auto operator&(BasicParser<T, Char> lhs, BasicParser<S, Char> rhs)
+        -> BasicParserLike<Char> auto {
+        auto parse = [lhs = std::move(lhs),
+                      rhs = std::move(rhs)](std::basic_string_view<Char> src) {
+            using PairValue = std::pair<
+                typename decltype(lhs)::ParseValue,
+                typename decltype(rhs)::ParseValue>;
+
+            auto left_result = lhs.parse(src);
+
+            if (!left_result.ok()) {
+                return BasicParseResult<PairValue, Char>{
+                    .value = std::nullopt,
+                    .tail = src,
+                };
+            }
+
+            auto right_result = rhs.parse(left_result.tail);
+
+            if (!right_result.ok()) {
+                return BasicParseResult<PairValue, Char>{
+                    .value = std::nullopt,
+                    .tail = src,
+                };
+            }
+
+            return BasicParseResult<PairValue, Char>{
+                .value = std::make_pair(
+                    std::move(left_result).get_value(),
+                    std::move(right_result).get_value()
+                ),
+                .tail = right_result.tail,
+            };
+        };
+
+        return BasicParser<decltype(parse), Char>{std::move(parse)};
+    }
+
+    template <BasicParseFunction<Char> S>
     friend auto operator>>(BasicParser<T, Char> lhs, BasicParser<S, Char> rhs)
         -> BasicParserLike<Char> auto {
         auto parse = [lhs = std::move(lhs),

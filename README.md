@@ -14,7 +14,7 @@ Add to your CMakeLists.txt:
 # Include `FetchContent` if it's not present
 include(FetchContent)
 
-set(COMB_VERSION 0.1.1)
+set(COMB_VERSION 0.2.0)
 FetchContent_Declare(
     comb
     DOWNLOAD_EXTRACT_TIMESTAMP OFF
@@ -52,13 +52,19 @@ auto main() -> int {
     // >> means "parse and drop current value, take right"
     // << means "parse and take current value, drop right"
     // newline() parses newline symbol (one of LF, CR of CRLF)
-    // .repeat(1) means "repeat current parser at least 1 times"
-    auto parser = (prefix("name")
-                >> whitespace()
-                >> character('=')
-                >> whitespace()
-                >> quoted_string('\'')
-                << newline()).repeat(1);
+    // list uses 2 parsers: first for list elements, second for delimiters
+    //     you can allow or disallow (or even require) trailing delimiter.
+    //     The last argument describes minimum number of elements in the list
+    auto parser = list(
+        prefix("name")
+            >> whitespace()
+            >> character('=')
+            >> whitespace()
+            >> quoted_string('\''),
+        newline(),
+        TrailingSeparator::Allowed,
+        1
+    );
 
     auto result = parser.parse(SOURCE);
     assert(result.ok());
@@ -77,7 +83,7 @@ Parse enumeration values and implement your own parser.
 using namespace comb;
 
 // parses '$(name)' with any given $(name)
-auto single_quoted_name(std::string_view name) {
+auto constexpr single_quoted_name(std::string_view name) {
     return character('\'') >> prefix(name) << character('\'');
 }
 
@@ -96,7 +102,7 @@ auto main() -> int {
         | single_quoted_name("third").map([](auto parsed) { return Variant::Third; });
 
     // repeat this parser separated by any number of whitespaces
-    auto parser = (variant_parser << whitespace()).repeat();
+    auto parser = list(variant_parser, whitespace());
 
     auto result = parser.parse(SOURCE);
     assert(result.ok());

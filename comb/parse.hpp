@@ -97,6 +97,9 @@ struct BasicParser {
     using ParseValue =
         decltype(parse(std::basic_string_view<Char>{}).get_value());
 
+    template <class S>
+    using ParserChar = BasicParser<S, Char>;
+
     template <class Self>
     inline auto constexpr operator()(
         this Self&& self, std::basic_string_view<Char> src
@@ -108,8 +111,9 @@ struct BasicParser {
     friend inline auto constexpr operator|(
         BasicParser<T, Char> lhs, BasicParser<S, Char> rhs
     ) -> BasicParserLike<Char> auto {
-        auto parse = [lhs = std::move(lhs),
-                      rhs = std::move(rhs)](std::basic_string_view<Char> src) {
+        return ParserChar{[lhs = std::move(lhs), rhs = std::move(rhs)](
+                              std::basic_string_view<Char> src
+                          ) {
             auto left_result = lhs.parse(src);
 
             if (left_result.ok()) {
@@ -118,17 +122,16 @@ struct BasicParser {
                 auto right_result = rhs.parse(src);
                 return std::move(right_result);
             }
-        };
-
-        return BasicParser<decltype(parse), Char>{std::move(parse)};
+        }};
     }
 
     template <BasicParseFunction<Char> S>
     friend inline auto constexpr operator&(
         BasicParser<T, Char> lhs, BasicParser<S, Char> rhs
     ) -> BasicParserLike<Char> auto {
-        auto parse = [lhs = std::move(lhs),
-                      rhs = std::move(rhs)](std::basic_string_view<Char> src) {
+        return ParserChar{[lhs = std::move(lhs), rhs = std::move(rhs)](
+                              std::basic_string_view<Char> src
+                          ) {
             using PairValue = std::pair<
                 typename decltype(lhs)::ParseValue,
                 typename decltype(rhs)::ParseValue>;
@@ -158,17 +161,16 @@ struct BasicParser {
                 ),
                 .tail = right_result.tail,
             };
-        };
-
-        return BasicParser<decltype(parse), Char>{std::move(parse)};
+        }};
     }
 
     template <BasicParseFunction<Char> S>
     friend inline auto constexpr operator>>(
         BasicParser<T, Char> lhs, BasicParser<S, Char> rhs
     ) -> BasicParserLike<Char> auto {
-        auto parse = [lhs = std::move(lhs),
-                      rhs = std::move(rhs)](std::basic_string_view<Char> src) {
+        return ParserChar{[lhs = std::move(lhs), rhs = std::move(rhs)](
+                              std::basic_string_view<Char> src
+                          ) {
             using RightValue = typename decltype(rhs)::ParseValue;
 
             auto left_result = lhs.parse(src);
@@ -182,17 +184,15 @@ struct BasicParser {
                 auto right_result = rhs.parse(left_result.tail);
                 return std::move(right_result);
             }
-        };
-
-        return BasicParser<decltype(parse), Char>{std::move(parse)};
+        }};
     }
 
     template <BasicParseFunction<Char> S>
     friend inline auto constexpr operator<<(
         BasicParser<T, Char> lhs, BasicParser<S, Char> rhs
     ) -> BasicParserLike<Char> auto {
-        auto parse = [lhs = std::move(lhs),
-                      rhs = std::move(rhs)](std::string_view src) {
+        return ParserChar{[lhs = std::move(lhs),
+                           rhs = std::move(rhs)](std::string_view src) {
             using LeftValue = typename decltype(lhs)::ParseValue;
 
             auto left_result = lhs.parse(src);
@@ -214,18 +214,16 @@ struct BasicParser {
             } else {
                 return left_result;
             }
-        };
-
-        return BasicParser<decltype(parse), Char>{std::move(parse)};
+        }};
     }
 
     inline auto constexpr map(
         this BasicParser self,
         BasicTransformMap<ParseValue, Char> auto transform
     ) -> BasicParserLike<Char> auto {
-        auto parse = [self = std::move(self), transform = std::move(transform)](
-                         std::basic_string_view<Char> src
-                     ) {
+        return ParserChar{[self = std::move(self),
+                           transform = std::move(transform
+                           )](std::basic_string_view<Char> src) {
             auto result = self.parse(src);
 
             using NewType = decltype(transform(result.get_value()));
@@ -240,9 +238,7 @@ struct BasicParser {
                     .value = std::nullopt, .tail = result.tail
                 };
             }
-        };
-
-        return BasicParser<decltype(parse), Char>{std::move(parse)};
+        }};
     }
 
     inline auto constexpr map_result(
@@ -250,17 +246,16 @@ struct BasicParser {
         BasicTransformMap<BasicParseResult<ParseValue, Char>, Char> auto
             transform
     ) -> BasicParserLike<Char> auto {
-        auto parse = [self = std::move(self), transform = std::move(transform)](
-                         std::basic_string_view<Char> src
-                     ) { return transform(self.parse(src)); };
-
-        return BasicParser<decltype(parse), Char>{std::move(parse)};
+        return ParserChar{[self = std::move(self),
+                           transform = std::move(transform)](
+                              std::basic_string_view<Char> src
+                          ) { return transform(self.parse(src)); }};
     }
 
     inline auto constexpr repeat(this BasicParser self, size_t min_count = 0)
         -> BasicParserLike<Char> auto {
-        auto parse = [self = std::move(self),
-                      min_count](std::basic_string_view<Char> src) {
+        return ParserChar{[self = std::move(self),
+                           min_count](std::basic_string_view<Char> src) {
             using Sequence = std::vector<ParseValue>;
 
             auto result_sequence = Sequence{};
@@ -284,15 +279,13 @@ struct BasicParser {
                     .tail = tail,
                 };
             }
-        };
-
-        return BasicParser<decltype(parse), Char>(std::move(parse));
+        }};
     }
 
     inline auto constexpr opt(this BasicParser self)
         -> BasicParserLike<Char> auto {
-        auto parse = [self =
-                          std::move(self)](std::basic_string_view<Char> src) {
+        return ParserChar{[self = std::move(self
+                           )](std::basic_string_view<Char> src) {
             using Value = std::optional<decltype(self.parse(src).get_value())>;
 
             auto result = self.parse(src);
@@ -301,17 +294,15 @@ struct BasicParser {
                 .value = std::make_optional<Value>(std::move(result).value),
                 .tail = result.tail,
             };
-        };
-
-        return BasicParser<decltype(parse), Char>(std::move(parse));
+        }};
     }
 
     inline auto constexpr opt_default(this BasicParser self)
         -> BasicParserLike<Char> auto
         requires std::is_default_constructible_v<ParseValue>
     {
-        auto parse = [self =
-                          std::move(self)](std::basic_string_view<Char> src) {
+        return ParserChar{[self = std::move(self
+                           )](std::basic_string_view<Char> src) {
             auto result = self.parse(src);
 
             if (result.ok()) {
@@ -322,16 +313,14 @@ struct BasicParser {
                     .tail = src,
                 };
             }
-        };
-
-        return BasicParser<decltype(parse), Char>(std::move(parse));
+        }};
     }
 
     inline auto constexpr opt_value(this BasicParser self, ParseValue value)
         -> BasicParserLike<Char> auto {
-        auto parse = [self = std::move(self),
-                      value =
-                          std::move(value)](std::basic_string_view<Char> src) {
+        return ParserChar{[self = std::move(self), value = std::move(value)](
+                              std::basic_string_view<Char> src
+                          ) {
             auto result = self.parse(src);
 
             if (result.ok()) {
@@ -342,18 +331,16 @@ struct BasicParser {
                     .tail = src,
                 };
             }
-        };
-
-        return BasicParser<decltype(parse), Char>(std::move(parse));
+        }};
     }
 
     inline auto constexpr take_if(
         this BasicParser self,
         BasicFilterPredicate<ParseValue const&, Char> auto predicate
     ) -> BasicParserLike<Char> auto {
-        auto parse = [self = std::move(self), predicate = std::move(predicate)](
-                         std::basic_string_view<Char> src
-                     ) {
+        return ParserChar{[self = std::move(self),
+                           predicate = std::move(predicate
+                           )](std::basic_string_view<Char> src) {
             auto result = self.parse(src);
 
             if (result.ok() && predicate(result.get_value())) {
@@ -364,9 +351,7 @@ struct BasicParser {
                     .tail = src,
                 };
             }
-        };
-
-        return BasicParser<decltype(parse), Char>(std::move(parse));
+        }};
     }
 };
 
@@ -405,32 +390,40 @@ inline auto constexpr is_whitespace(char value) -> bool {
 
 namespace basic {
     template <class Char>
-    inline auto constexpr prefix(std::basic_string_view<Char> match)
-        -> BasicParserLike<Char> auto {
-        auto parse = [match](std::basic_string_view<Char> src
-                     ) -> BasicParseResult<std::basic_string_view<Char>, Char> {
-            if (src.size() < match.size() || !src.starts_with(match)) {
-                return BasicParseResult<std::basic_string_view<Char>, Char>{
-                    .value = std::nullopt, .tail = src
-                };
-            } else {
-                auto head = src;
-                head.remove_suffix(src.size() - match.size());
-                src.remove_prefix(match.size());
+    struct Prefix {
+        template <class T>
+        using ParserChar = BasicParser<T, Char>;
 
-                return BasicParseResult<std::basic_string_view<Char>, Char>{
-                    .value = head, .tail = src
-                };
-            }
-        };
+        inline static auto constexpr prefix(std::basic_string_view<Char> match)
+            -> BasicParserLike<Char> auto {
+            return ParserChar{
+                [match](std::basic_string_view<Char> src
+                ) -> BasicParseResult<std::basic_string_view<Char>, Char> {
+                    if (src.size() < match.size() || !src.starts_with(match)) {
+                        return BasicParseResult<
+                            std::basic_string_view<Char>, Char>{
+                            .value = std::nullopt, .tail = src
+                        };
+                    } else {
+                        auto head = src;
+                        head.remove_suffix(src.size() - match.size());
+                        src.remove_prefix(match.size());
 
-        return BasicParser<decltype(parse), Char>{std::move(parse)};
-    }
+                        return BasicParseResult<
+                            std::basic_string_view<Char>, Char>{
+                            .value = head, .tail = src
+                        };
+                    }
+                }
+            };
+        }
+    };
+
+    template <class Char>
+    auto constexpr prefix = Prefix<Char>::prefix;
 }  // namespace basic
 
-inline auto constexpr prefix(std::string_view match) -> ParserLike auto {
-    return basic::prefix<char>(match);
-}
+auto constexpr prefix = basic::prefix<char>;
 
 inline auto constexpr integer(uint32_t radix = 10) -> ParserLike auto {
     return Parser{[radix](std::string_view src) -> ParseResult<int64_t> {
@@ -546,75 +539,94 @@ enum class TrailingSeparator {
 
 namespace basic {
     template <class Char>
+    struct List {
+        template <class T>
+        using ParserChar = BasicParser<T, Char>;
+
+        static auto constexpr list(
+            BasicParserLike<Char> auto elem_parser,
+            BasicParserLike<Char> auto separator_parser,
+            TrailingSeparator trailing_sep = TrailingSeparator::Allowed,
+            size_t min_elem_count = 0
+        ) -> BasicParserLike<Char> auto {
+            return ParserChar{[elem_parser = std::move(elem_parser),
+                               separator_parser = std::move(separator_parser),
+                               trailing_sep,
+                               min_elem_count](std::basic_string_view<Char> src
+                              ) {
+                using Elem = decltype(elem_parser.parse(src).get_value());
+                using Value = std::vector<Elem>;
+
+                auto values = Value{};
+                auto prev_tail = std::basic_string_view<Char>{};
+                auto tail = src;
+                auto empty_result = BasicParseResult<Value, Char>{
+                    .value = std::nullopt,
+                    .tail = src,
+                };
+
+                if (auto first_result = elem_parser.parse(src);
+                    first_result.ok())
+                {
+                    prev_tail = tail;
+                    tail = first_result.tail;
+                    values.emplace_back(std::move(first_result).get_value());
+
+                    while (true) {
+                        auto sep_result = separator_parser.parse(tail);
+
+                        if (!sep_result.ok()) {
+                            if (TrailingSeparator::Required == trailing_sep) {
+                                values.pop_back();
+                                tail = prev_tail;
+                            }
+
+                            break;
+                        }
+
+                        prev_tail = tail;
+                        tail = sep_result.tail;
+
+                        auto elem_result = elem_parser.parse(tail);
+
+                        if (!elem_result.ok()) {
+                            if (TrailingSeparator::Disallowed == trailing_sep) {
+                                tail = prev_tail;
+                            }
+
+                            break;
+                        }
+
+                        prev_tail = tail;
+                        tail = elem_result.tail;
+
+                        values.emplace_back(std::move(elem_result).get_value());
+                    }
+                }
+
+                if (values.size() < min_elem_count) {
+                    return empty_result;
+                } else {
+                    return BasicParseResult<Value, Char>{
+                        .value = std::move(values),
+                        .tail = tail,
+                    };
+                }
+            }};
+        }
+    };
+
+    template <class Char>
     auto constexpr list(
         BasicParserLike<Char> auto elem_parser,
         BasicParserLike<Char> auto separator_parser,
         TrailingSeparator trailing_sep = TrailingSeparator::Allowed,
         size_t min_elem_count = 0
     ) -> BasicParserLike<Char> auto {
-        auto parse = [elem_parser = std::move(elem_parser),
-                      separator_parser = std::move(separator_parser),
-                      trailing_sep,
-                      min_elem_count](std::basic_string_view<Char> src) {
-            using Elem = decltype(elem_parser.parse(src).get_value());
-            using Value = std::vector<Elem>;
-
-            auto values = Value{};
-            auto prev_tail = std::basic_string_view<Char>{};
-            auto tail = src;
-            auto empty_result = BasicParseResult<Value, Char>{
-                .value = std::nullopt,
-                .tail = src,
-            };
-
-            if (auto first_result = elem_parser.parse(src); first_result.ok()) {
-                prev_tail = tail;
-                tail = first_result.tail;
-                values.emplace_back(std::move(first_result).get_value());
-
-                while (true) {
-                    auto sep_result = separator_parser.parse(tail);
-
-                    if (!sep_result.ok()) {
-                        if (TrailingSeparator::Required == trailing_sep) {
-                            values.pop_back();
-                            tail = prev_tail;
-                        }
-
-                        break;
-                    }
-
-                    prev_tail = tail;
-                    tail = sep_result.tail;
-
-                    auto elem_result = elem_parser.parse(tail);
-
-                    if (!elem_result.ok()) {
-                        if (TrailingSeparator::Disallowed == trailing_sep) {
-                            tail = prev_tail;
-                        }
-
-                        break;
-                    }
-
-                    prev_tail = tail;
-                    tail = elem_result.tail;
-
-                    values.emplace_back(std::move(elem_result).get_value());
-                }
-            }
-
-            if (values.size() < min_elem_count) {
-                return empty_result;
-            } else {
-                return BasicParseResult<Value, Char>{
-                    .value = std::move(values),
-                    .tail = tail,
-                };
-            }
-        };
-
-        return BasicParser<decltype(parse), Char>{std::move(parse)};
+        return List<Char>::list(
+            std::move(elem_parser), std::move(separator_parser), trailing_sep,
+            min_elem_count
+        );
     }
 }  // namespace basic
 
@@ -623,7 +635,7 @@ auto constexpr list(
     TrailingSeparator trailing_sep = TrailingSeparator::Allowed,
     size_t min_elem_count = 0
 ) -> ParserLike auto {
-    return basic::list<char>(
+    return basic::List<char>::list(
         std::move(elem_parser), std::move(separator_parser), trailing_sep,
         min_elem_count
     );

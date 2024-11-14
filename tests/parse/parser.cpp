@@ -138,6 +138,21 @@ auto test_parse_opt() -> void {
     comb_assert(!result2.get_value().has_value());
 }
 
+auto test_parse_opt_default() -> void {
+    auto parser = prefix("value") >> character('=') >> integer().opt_default();
+
+    auto result1 = parser.parse("value=42_tail");
+
+    comb_assert(result1.ok());
+    comb_assert_eq(result1.get_value(), 42);
+    comb_assert_eq(result1.tail, "_tail");
+
+    auto result2 = parser.parse("value=_tail");
+
+    comb_assert(result2.ok());
+    comb_assert_eq(result2.get_value(), 0);
+}
+
 auto test_parse_list() -> void {
     auto parser = list(prefix("elem"), character(','));
 

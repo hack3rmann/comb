@@ -155,10 +155,10 @@ struct BasicParser {
             }
 
             return BasicParseResult<PairValue, Char>{
-                .value = std::make_pair(
+                .value = std::make_optional<PairValue>(std::make_pair(
                     std::move(left_result).get_value(),
                     std::move(right_result).get_value()
-                ),
+                )),
                 .tail = right_result.tail,
             };
         }};
@@ -197,22 +197,22 @@ struct BasicParser {
 
             auto left_result = lhs.parse(src);
 
-            if (left_result.ok()) {
-                auto right_result = rhs.parse(left_result.tail);
-
-                if (right_result.ok()) {
-                    return BasicParseResult<LeftValue, Char>{
-                        .value = std::move(left_result).value,
-                        .tail = right_result.tail,
-                    };
-                } else {
-                    return BasicParseResult<LeftValue, Char>{
-                        .value = std::nullopt,
-                        .tail = src,
-                    };
-                }
-            } else {
+            if (!left_result.ok()) {
                 return left_result;
+            }
+
+            auto right_result = rhs.parse(left_result.tail);
+
+            if (right_result.ok()) {
+                return BasicParseResult<LeftValue, Char>{
+                    .value = std::move(left_result.value),
+                    .tail = right_result.tail,
+                };
+            } else {
+                return BasicParseResult<LeftValue, Char>{
+                    .value = std::nullopt,
+                    .tail = src,
+                };
             }
         }};
     }
@@ -230,12 +230,15 @@ struct BasicParser {
 
             if (result.ok()) {
                 return BasicParseResult<NewType, Char>{
-                    .value = transform(std::move(result).get_value()),
-                    .tail = result.tail
+                    .value = std::make_optional<NewType>(
+                        transform(std::move(result).get_value())
+                    ),
+                    .tail = result.tail,
                 };
             } else {
                 return BasicParseResult<NewType, Char>{
-                    .value = std::nullopt, .tail = result.tail
+                    .value = std::nullopt,
+                    .tail = result.tail,
                 };
             }
         }};
@@ -275,7 +278,9 @@ struct BasicParser {
                 };
             } else {
                 return BasicParseResult<Sequence, Char>{
-                    .value = std::move(result_sequence),
+                    .value =
+                        std::make_optional<Sequence>(std::move(result_sequence)
+                        ),
                     .tail = tail,
                 };
             }
@@ -309,7 +314,7 @@ struct BasicParser {
                 return std::move(result);
             } else {
                 return BasicParseResult<ParseValue, Char>{
-                    .value = ParseValue{},
+                    .value = std::make_optional<ParseValue>(),
                     .tail = src,
                 };
             }
@@ -327,7 +332,7 @@ struct BasicParser {
                 return std::move(result);
             } else {
                 return BasicParseResult<ParseValue, Char>{
-                    .value = std::move(value),
+                    .value = std::make_optional<ParseValue>(std::move(value)),
                     .tail = src,
                 };
             }

@@ -12,7 +12,7 @@ jobs:
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
-          compiler: gcc-13
+          compiler: gcc-14
           cmake: true
           ninja: true
       - name: print gcc version

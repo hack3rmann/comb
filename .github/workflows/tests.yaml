@@ -9,7 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: configure
+      - name: install Ninja
+        run: sudo apt-get install -y ninja
+      - name: run cmake
         run: cmake -B build -G Ninja -DCOMB_BUILD_TESTS=ON
       - name: build
         run: cmake --build build

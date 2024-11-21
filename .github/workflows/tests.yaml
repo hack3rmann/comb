@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: print cxx version
+        run: c++ --version
       - name: install Ninja
         run: sudo apt-get install -y ninja-build
       - name: run cmake

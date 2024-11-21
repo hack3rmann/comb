@@ -8,13 +8,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:
-          compiler: gcc
+          compiler: gcc-13
           cmake: true
           ninja: true
-      - uses: actions/checkout@v4
       - name: print gcc version
         run: gcc --version
       - name: install Ninja

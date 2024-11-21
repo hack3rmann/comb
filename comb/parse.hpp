@@ -95,7 +95,7 @@ struct BasicParser {
     T parse;
 
     using ParseValue =
-        decltype(parse(std::basic_string_view<Char>{}).get_value());
+        decltype(std::declval<T>()(std::basic_string_view<Char>{}).get_value());
 
     template <class S>
     using ParserChar = BasicParser<S, Char>;
@@ -218,13 +218,13 @@ struct BasicParser {
     }
 
     inline auto constexpr map(
-        this BasicParser self,
+        this BasicParser&& self,
         BasicTransformMap<ParseValue, Char> auto transform
     ) -> BasicParserLike<Char> auto {
         return ParserChar{[self = std::move(self),
                            transform = std::move(transform
                            )](std::basic_string_view<Char> src) {
-            auto result = self.parse(src);
+            auto result = self(src);
 
             using NewType = decltype(transform(result.get_value()));
 
@@ -252,7 +252,7 @@ struct BasicParser {
         return ParserChar{[self = std::move(self),
                            transform = std::move(transform)](
                               std::basic_string_view<Char> src
-                          ) { return transform(self.parse(src)); }};
+                          ) { return transform(self(src)); }};
     }
 
     inline auto constexpr repeat(this BasicParser self, size_t min_count = 0)
@@ -264,8 +264,8 @@ struct BasicParser {
             auto result_sequence = Sequence{};
             auto tail = src;
 
-            for (auto result = self.parse(tail); result.ok();
-                 result = self.parse(tail))
+            for (auto result = self(tail); result.ok();
+                 result = self(tail))
             {
                 result_sequence.emplace_back(std::move(result).get_value());
                 tail = result.tail;
@@ -291,9 +291,9 @@ struct BasicParser {
         -> BasicParserLike<Char> auto {
         return ParserChar{[self = std::move(self
                            )](std::basic_string_view<Char> src) {
-            using Value = std::optional<decltype(self.parse(src).get_value())>;
+            using Value = std::optional<decltype(self(src).get_value())>;
 
-            auto result = self.parse(src);
+            auto result = self(src);
 
             return BasicParseResult<Value, Char>{
                 .value = std::make_optional<Value>(std::move(result).value),
@@ -308,7 +308,7 @@ struct BasicParser {
     {
         return ParserChar{[self = std::move(self
                            )](std::basic_string_view<Char> src) {
-            auto result = self.parse(src);
+            auto result = self(src);
 
             if (result.ok()) {
                 return std::move(result);
@@ -326,7 +326,7 @@ struct BasicParser {
         return ParserChar{[self = std::move(self), value = std::move(value)](
                               std::basic_string_view<Char> src
                           ) {
-            auto result = self.parse(src);
+            auto result = self(src);
 
             if (result.ok()) {
                 return std::move(result);
@@ -428,7 +428,9 @@ namespace basic {
     auto constexpr prefix = Prefix<Char>::prefix;
 }  // namespace basic
 
-auto constexpr prefix = basic::prefix<char>;
+inline auto constexpr prefix(std::string_view match) -> ParserLike auto {
+    return basic::prefix<char>(match);
+}
 
 inline auto constexpr integer(uint32_t radix = 10) -> ParserLike auto {
     return Parser{[radix](std::string_view src) -> ParseResult<int64_t> {

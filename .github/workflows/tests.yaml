@@ -19,8 +19,6 @@ jobs:
           ninja: true
       - name: print gcc version
         run: gcc --version
-      - name: install Ninja
-        run: sudo apt-get install -y ninja-build
       - name: run cmake
         run: cmake -B build -G Ninja -DCOMB_BUILD_TESTS=ON
       - name: build

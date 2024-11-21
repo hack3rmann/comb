@@ -6,7 +6,7 @@
 
 ## How to install
 
-### With CMake
+### With CMake's `FetchContent`
 
 Add to your CMakeLists.txt:
 
@@ -14,17 +14,27 @@ Add to your CMakeLists.txt:
 # Include `FetchContent` if it's not present
 include(FetchContent)
 
-set(COMB_VERSION 0.2.1)
+set(COMB_VERSION 0.2.2)
 FetchContent_Declare(
     comb
     DOWNLOAD_EXTRACT_TIMESTAMP OFF
     URL https://github.com/hack3rmann/comb/archive/refs/tags/${COMB_VERSION}.tar.gz)
 
 FetchContent_MakeAvailable(comb)
-target_link_libraries(${TARGET_NAME} comb)
+target_link_libraries(${YOUR_TARGET_NAME} comb)
 ```
 
 It will fetch `comb` at build time.
+
+### With `CPM`
+
+If you are using `CPM` package manager, add to your CMakeLists.txt:
+
+```cmake
+CPMAddPackage("gh:hack3rmann/comb#0.2.2")
+
+target_link_libraries(${YOUR_TARGET_NAME} comb)
+```
 
 ### Simple copying
 

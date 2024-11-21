@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: configure
-        run: cmake -B build -G Ninja -DCOMB_BUILD_TESTS
+        run: cmake -B build -G Ninja -DCOMB_BUILD_TESTS=ON
       - name: build
         run: cmake --build build
       - name: test

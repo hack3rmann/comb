@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up universe ubuntu repo
+        run: sudo add-apt-repository universe
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1
         with:

@@ -61,6 +61,7 @@ concept BasicParserLike = requires(T parser, std::basic_string_view<Char> src) {
     {
         parser.parse
     } -> BasicParseFunction<Char>;
+    typename T::ParseValue;
 };
 
 template <class T>
@@ -264,9 +265,7 @@ struct BasicParser {
             auto result_sequence = Sequence{};
             auto tail = src;
 
-            for (auto result = self(tail); result.ok();
-                 result = self(tail))
-            {
+            for (auto result = self(tail); result.ok(); result = self(tail)) {
                 result_sequence.emplace_back(std::move(result).get_value());
                 tail = result.tail;
             }
@@ -498,6 +497,22 @@ inline auto constexpr newline() -> ParserLike auto {
     return prefix("\r\n") | prefix("\n") | prefix("\r");
 }
 
+inline auto constexpr end() -> ParserLike auto {
+    return Parser{[](std::string_view src) -> ParseResult<std::string_view> {
+        if (src.empty()) {
+            return ParseResult<std::string_view>{
+                .value = std::make_optional<std::string_view>(src),
+                .tail = src,
+            };
+        } else {
+            return ParseResult<std::string_view>{
+                .value = std::nullopt,
+                .tail = src,
+            };
+        }
+    }};
+}
+
 inline auto constexpr quoted_string(char quote_symbol = '"') -> ParserLike
     auto {
     return Parser{
@@ -646,6 +661,46 @@ auto constexpr list(
         std::move(elem_parser), std::move(separator_parser), trailing_sep,
         min_elem_count
     );
+}
+
+using DummyThrowType = struct {};
+
+template <ParserLike P>
+auto constexpr __execute_parser_throw(P parse, std::string_view& tail)
+    -> P::ParseValue {
+    auto result = parse(tail);
+
+    if (!result.ok()) {
+        throw DummyThrowType{};
+    }
+
+    tail = result.tail;
+
+    return std::move(result).get_value();
+}
+
+template <class S>
+auto constexpr collect(ParserLike auto... parser) -> ParserLike auto {
+    return Parser{
+        [... parse =
+             std::move(parser)](std::string_view src) -> ParseResult<S> {
+            auto tail = src;
+
+            try {
+                return ParseResult<S>{
+                    .value = std::optional<S>{S(
+                        __execute_parser_throw(parse, tail)...
+                    )},
+                    .tail = tail,
+                };
+            } catch ([[maybe_unused]] DummyThrowType error) {
+                return ParseResult<S>{
+                    .value = std::nullopt,
+                    .tail = src,
+                };
+            }
+        }
+    };
 }
 
 }  // namespace comb

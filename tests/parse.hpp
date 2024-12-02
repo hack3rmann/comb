@@ -28,5 +28,7 @@ auto test_parse_pair() -> void;
 auto test_parse_json() -> void;
 auto test_parse_json_object() -> void;
 auto test_parse_float() -> void;
+auto test_parse_collect() -> void;
+auto test_parse_end() -> void;
 
 }  // namespace tmine_test

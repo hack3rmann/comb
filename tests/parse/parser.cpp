@@ -312,8 +312,51 @@ auto test_parse_float() -> void {
     auto result1 = parse("1.2 3.1415 2.718281828");
 
     comb_assert(result1.ok());
-    comb_assert_eq(result1.get_value(), (std::vector<double>{1.2, 3.1415, 2.718281828}));
+    comb_assert_eq(
+        result1.get_value(), (std::vector<double>{1.2, 3.1415, 2.718281828})
+    );
     comb_assert_eq(result1.tail, "");
+}
+
+auto test_parse_collect() -> void {
+    using Card = struct {
+        std::string_view name;
+        float height;
+        size_t age;
+    };
+
+    auto parse = collect<Card>(
+        quoted_string('\'') << whitespace(), floating() << whitespace(),
+        integer() << whitespace()
+    );
+
+    auto result1 = parse("'George' 180.1 42");
+
+    comb_assert(result1.ok());
+    
+    auto value = std::move(result1).get_value();
+
+    comb_assert_eq(value.name, "George");
+    comb_assert_eq(value.height, 180.1f);
+    comb_assert_eq(value.age, 42);
+
+    auto result2 = parse("  'George' 180.1 42");
+
+    comb_assert(!result2.ok());
+}
+
+auto test_parse_end() -> void {
+    auto parse = quoted_string('\'') << end();
+
+    auto result1 = parse("'name'");
+
+    comb_assert(result1.ok());
+    comb_assert_eq(result1.get_value(), "name");
+    comb_assert_eq(result1.tail, "");
+
+    auto result2 = parse("'name' ");
+
+    comb_assert(!result2.ok());
 }
 
 }  // namespace comb_test

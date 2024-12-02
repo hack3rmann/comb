@@ -28,4 +28,6 @@ auto main() -> int {
     perform_test(test_parse_json);
     perform_test(test_parse_json_object);
     perform_test(test_parse_float);
+    perform_test(test_parse_collect);
+    perform_test(test_parse_end);
 }

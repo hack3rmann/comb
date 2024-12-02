@@ -245,6 +245,13 @@ struct BasicParser {
         }};
     }
 
+    inline auto constexpr map_string(this BasicParser&& self)
+        -> BasicParserLike<Char> auto {
+        return std::forward<BasicParser>(self).map([](auto value) {
+            return std::string(std::move(value));
+        });
+    }
+
     inline auto constexpr map_result(
         this BasicParser self,
         BasicTransformMap<BasicParseResult<ParseValue, Char>, Char> auto

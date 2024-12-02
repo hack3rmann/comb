@@ -320,20 +320,20 @@ auto test_parse_float() -> void {
 
 auto test_parse_collect() -> void {
     using Card = struct {
-        std::string_view name;
+        std::string name;
         float height;
         size_t age;
     };
 
     auto parse = collect<Card>(
-        quoted_string('\'') << whitespace(), floating() << whitespace(),
-        integer() << whitespace()
+        (quoted_string('\'') << whitespace()).map_string(),
+        floating() << whitespace(), integer() << whitespace()
     );
 
     auto result1 = parse("'George' 180.1 42");
 
     comb_assert(result1.ok());
-    
+
     auto value = std::move(result1).get_value();
 
     comb_assert_eq(value.name, "George");

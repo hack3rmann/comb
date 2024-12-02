@@ -326,8 +326,9 @@ auto test_parse_collect() -> void {
     };
 
     auto parse = collect<Card>(
-        (quoted_string('\'') << whitespace()).map_string(),
-        floating() << whitespace(), integer() << whitespace()
+        (quoted_string('\'') << whitespace()).map_type<std::string>(),
+        (floating() << whitespace()).map_type<float>(),
+        (integer() << whitespace()).map_type<size_t>()
     );
 
     auto result1 = parse("'George' 180.1 42");

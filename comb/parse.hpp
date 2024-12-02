@@ -245,10 +245,11 @@ struct BasicParser {
         }};
     }
 
-    inline auto constexpr map_string(this BasicParser&& self)
+    template <class NewType>
+    inline auto constexpr map_type(this BasicParser&& self)
         -> BasicParserLike<Char> auto {
         return std::forward<BasicParser>(self).map([](auto value) {
-            return std::string(std::move(value));
+            return NewType(std::move(value));
         });
     }
 
@@ -695,9 +696,10 @@ auto constexpr collect(ParserLike auto... parser) -> ParserLike auto {
 
             try {
                 return ParseResult<S>{
-                    .value = std::optional<S>{S(
-                        __execute_parser_throw(parse, tail)...
-                    )},
+                    .value = std::make_optional<S>(
+                        // use braced initializer to force evaluation order
+                        S{__execute_parser_throw(parse, tail)...}
+                    ),
                     .tail = tail,
                 };
             } catch ([[maybe_unused]] DummyThrowType error) {

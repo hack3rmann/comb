@@ -14,7 +14,7 @@ Add to your CMakeLists.txt:
 # Include `FetchContent` if it's not present
 include(FetchContent)
 
-set(COMB_VERSION 0.3.0)
+set(COMB_VERSION 0.3.1)
 FetchContent_Declare(
     comb
     DOWNLOAD_EXTRACT_TIMESTAMP OFF
@@ -31,7 +31,7 @@ It will fetch `comb` at build time.
 If you are using `CPM` package manager, add to your CMakeLists.txt:
 
 ```cmake
-CPMAddPackage("gh:hack3rmann/comb#0.3.0")
+CPMAddPackage("gh:hack3rmann/comb#0.3.1")
 
 target_link_libraries(${YOUR_TARGET_NAME} comb)
 ```
